@@ -1,0 +1,10 @@
+#ifndef LEOGNAN_MACROS_H
+#define LEOGNAN_MACROS_H
+
+
+
+#define UNUSED_PARAM(x) x __attribute__((unused))
+
+
+
+#endif // LEOGNAN_MACROS_H
