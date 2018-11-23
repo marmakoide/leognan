@@ -208,6 +208,20 @@ namespace leognan {
 
 
 
+	const Randomizer::Setting
+	Randomizer::SettingsList[] =
+	{
+		{ 716514398u,    8u },
+		{ 487198574u,   16u },
+		{ 547416522u,   32u },
+		{ 647535442u,   64u },
+		{ 8007626u,    128u },
+		{ 8001634u,    256u },
+		{ 123554632u,  512u },
+		{ 123471786u, 1024u },
+		{ 18782u,     4096u }
+	}; // SettingsList
+
 	const double
 	Randomizer::ytab[128] =  {
 		1, 0.963598623011, 0.936280813353, 0.913041104253,
