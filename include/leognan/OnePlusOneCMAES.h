@@ -9,6 +9,21 @@
 namespace leognan {
 	class OnePlusOneCMAES {
 	public:
+		OnePlusOneCMAES() :
+			m_sigma_init(1.) { }
+
+		inline double& sigma_init() {
+			return m_sigma_init;
+		}
+
+		inline double sigma_init() const {
+			return m_sigma_init;
+		}
+
+		inline double get_best_fitness() const {
+			return m_f_parent;
+		}
+
 		void
 		init(const FitnessFunction* fitness_func,
 		     const Eigen::VectorXd& X_init) {
@@ -35,7 +50,7 @@ namespace leognan {
 			m_pthreshold = .44;
 
 			// Evaluate initial solution
-			m_sigma = 1.;
+			m_sigma = m_sigma_init;
 			m_f_parent = fitness_func->get_fitness(X_init);
 		}
 
@@ -92,6 +107,7 @@ namespace leognan {
 		double m_ccov;
 		double m_pthreshold;
 		double m_sigma;
+		double m_sigma_init;
 		double m_psucc;
 		double m_psucc_target;
 		double m_lambda_succ;
