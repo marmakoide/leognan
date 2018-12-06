@@ -106,43 +106,7 @@ private:
 
 
 
-// --- Test cases -------------------------------------------------------------
-
-class TestCase {
-public:
-	TestCase(const std::string& name,
-	         const FitnessFunction* fitness_func,
-	         double sigma_init,
-	         const InitialSolutionGenerator& ini_gen) :
-		m_name(name),
-		m_fitness_func(fitness_func),
-		m_sigma_init(sigma_init),
-		m_ini_gen(ini_gen) { }
-
-	inline const std::string& name() const {
-		return m_name;
-	}
-
-	inline const FitnessFunction* fitness_func() const {
-		return m_fitness_func;
-	}
-
-	inline double sigma_init() const{ 
-		return m_sigma_init;
-	}
-
-	inline const InitialSolutionGenerator& initial_solution_generator() const {
-		return m_ini_gen;
-	}
-
-private:
-	const std::string m_name;
-	const FitnessFunction* m_fitness_func;
-	double m_sigma_init;
-	InitialSolutionGenerator m_ini_gen;
-}; // class TestCase
-
-
+// --- Fitness function factory -----------------------------------------------
 
 Eigen::MatrixXd
 get_random_rotation_matrix(int n, Randomizer& rnd) {
@@ -164,10 +128,93 @@ get_random_rotation_matrix(int n, Randomizer& rnd) {
 
 
 
+class FitnessFunctionFactory {
+public:
+	virtual ~FitnessFunctionFactory() { }
+
+	virtual FitnessFunction*
+	get_fitness_function(Randomizer& rnd) const = 0;
+}; // class FitnessFunctionFactory
+
+
+
+class QuadraticFunctionFactory : public FitnessFunctionFactory {
+public:
+	QuadraticFunctionFactory(const Eigen::VectorXd& A) :
+		mA(A) { }
+
+	virtual ~QuadraticFunctionFactory() { }
+
+	virtual FitnessFunction*
+	get_fitness_function(Randomizer& rnd) const {
+		return new QuadraticFunction(mA, get_random_rotation_matrix(mA.rows(), rnd));
+	}
+
+private:
+	Eigen::VectorXd mA;
+}; // class QuadraticFunctionFactory
+
+
+
+class RastriginFunctionFactory : public FitnessFunctionFactory {
+public:
+	RastriginFunctionFactory(int n) :
+		m_n(n) { }
+
+	virtual ~RastriginFunctionFactory() { }
+
+	virtual FitnessFunction*
+	get_fitness_function(Randomizer& rnd) const {
+		return new RastriginFunction(m_n, get_random_rotation_matrix(m_n, rnd));
+	}
+
+private:
+	int m_n;
+}; // class RastriginFunctionFactory
+
+
+
+// --- Test cases -------------------------------------------------------------
+
+class TestCase {
+public:
+	TestCase(const std::string& name,
+	         const FitnessFunctionFactory* fitness_function_factory,
+	         double sigma_init,
+	         const InitialSolutionGenerator& ini_gen) :
+		m_name(name),
+		m_fitness_function_factory(fitness_function_factory),
+		m_sigma_init(sigma_init),
+		m_ini_gen(ini_gen) { }
+
+	inline const std::string& name() const {
+		return m_name;
+	}
+
+	inline const FitnessFunctionFactory* fitness_function_factory() const {
+		return m_fitness_function_factory;
+	}
+
+	inline double sigma_init() const { 
+		return m_sigma_init;
+	}
+
+	inline const InitialSolutionGenerator& initial_solution_generator() const {
+		return m_ini_gen;
+	}
+
+private:
+	const std::string m_name;
+	const FitnessFunctionFactory* m_fitness_function_factory;
+	double m_sigma_init;
+	InitialSolutionGenerator m_ini_gen;
+}; // class TestCase
+
+
+
 TestCase
-get_sphere_test(int n, Randomizer& rnd) {
+get_sphere_test(int n) {
 	Eigen::VectorXd A = Eigen::VectorXd::Ones(n);
-	Eigen::MatrixXd M = get_random_rotation_matrix(n, rnd);
 
 	// Generate the name
 	std::ostringstream name;
@@ -176,7 +223,7 @@ get_sphere_test(int n, Randomizer& rnd) {
 	// Job done
 	return
 		TestCase(name.str(),
-		         new QuadraticFunction(A, M),
+		         new QuadraticFunctionFactory(A),
 		         3.,
 		         InitialSolutionGenerator(-1., 5., n));
 }
@@ -184,12 +231,10 @@ get_sphere_test(int n, Randomizer& rnd) {
 
 
 TestCase
-get_ellipsoid_test(int n, Randomizer& rnd) {
+get_ellipsoid_test(int n) {
 	Eigen::VectorXd A(n);
 	for(int i = 0; i < n; ++i)
-		A(i) = std::pow(1000., double(i) / n);
-
-	Eigen::MatrixXd M = get_random_rotation_matrix(n, rnd);
+		A(i) = std::pow(1000., double(i) / (n - 1));
 
 	// Generate the name
 	std::ostringstream name;
@@ -198,7 +243,7 @@ get_ellipsoid_test(int n, Randomizer& rnd) {
 	// Job done
 	return
 		TestCase(name.str(),
-		         new QuadraticFunction(A, M),
+		         new QuadraticFunctionFactory(A),
 		         3.,
 		         InitialSolutionGenerator(-1., 5., n));
 }
@@ -206,11 +251,9 @@ get_ellipsoid_test(int n, Randomizer& rnd) {
 
 
 TestCase
-get_tablet_test(int n, Randomizer& rnd) {
+get_tablet_test(int n) {
 	Eigen::VectorXd A = Eigen::VectorXd::Ones(n);
 	A(0) = 1000.;
-
-	Eigen::MatrixXd M = get_random_rotation_matrix(n, rnd);
 	
 	// Generate the name
 	std::ostringstream name;
@@ -219,7 +262,7 @@ get_tablet_test(int n, Randomizer& rnd) {
 	// Job done
 	return
 		TestCase(name.str(),
-		         new QuadraticFunction(A, M),
+		         new QuadraticFunctionFactory(A),
 		         3.,
 		         InitialSolutionGenerator(-1., 5., n));
 }
@@ -227,9 +270,7 @@ get_tablet_test(int n, Randomizer& rnd) {
 
 
 TestCase
-get_rastrigin_test(int n, Randomizer& rnd) {
-	Eigen::MatrixXd M = get_random_rotation_matrix(n, rnd);
-
+get_rastrigin_test(int n) {
 	// Generate the name
 	std::ostringstream name;
 	name << "rastrigin-" << n;
@@ -237,7 +278,7 @@ get_rastrigin_test(int n, Randomizer& rnd) {
 	// Job done
 	return
 		TestCase(name.str(),
-		         new RastriginFunction(n, M),
+		         new RastriginFunctionFactory(n),
 		         3.,
 		         InitialSolutionGenerator(-1., 5., n));
 }
@@ -281,7 +322,9 @@ run_test(const TestCase& test,
 	std::list< std::vector<double> > fitness_stat;
 	for(std::size_t i = 0; i < trial_count; ++i) {
 		Eigen::VectorXd X_init = test.initial_solution_generator().get(rnd);
-		std::vector<double> fitness_log = run_optimization(test.fitness_func(), epoch_count, rnd, X_init);
+		FitnessFunction* fitness_func = test.fitness_function_factory()->get_fitness_function(rnd);
+		std::vector<double> fitness_log = run_optimization(fitness_func, epoch_count, rnd, X_init);
+		delete fitness_func;
 		fitness_stat.push_back(fitness_log);
 	}
 
@@ -327,17 +370,17 @@ main(int UNUSED_PARAM(argc), char** UNUSED_PARAM(argv)) {
 	// Build the test suite
 	std::vector<TestCase> test_case_list;
 
-	test_case_list.push_back(get_sphere_test(5, rnd));
-	test_case_list.push_back(get_ellipsoid_test(5, rnd));
-	test_case_list.push_back(get_rastrigin_test(5, rnd));
+	test_case_list.push_back(get_sphere_test(5));
+	test_case_list.push_back(get_ellipsoid_test(5));
+	test_case_list.push_back(get_rastrigin_test(5));
 
-	test_case_list.push_back(get_sphere_test(20, rnd));
-	test_case_list.push_back(get_ellipsoid_test(20, rnd));
-	test_case_list.push_back(get_rastrigin_test(20, rnd));
+	test_case_list.push_back(get_sphere_test(20));
+	test_case_list.push_back(get_ellipsoid_test(20));
+	test_case_list.push_back(get_rastrigin_test(20));
 
 	// Run test suite
 	for(const TestCase& test_case : test_case_list)
-		run_test(test_case, 51, 10000, rnd);
+		run_test(test_case, 51, 50000, rnd);
 
 	// Job done
 	return EXIT_SUCCESS;
