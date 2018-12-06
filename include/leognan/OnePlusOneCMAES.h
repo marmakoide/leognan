@@ -98,7 +98,7 @@ namespace leognan {
 			}
 			else {
 				m_pc = (1. - m_cc) * m_pc;
-				m_C = (1. - m_ccov) * m_C + (m_ccov * m_pc * m_pc.transpose() + m_cc * (2. - m_cc) * m_C);
+				m_C = (1. - m_ccov) * m_C + m_ccov * (m_pc * m_pc.transpose() + m_cc * (2. - m_cc) * m_C);
 			}
 		}
 
